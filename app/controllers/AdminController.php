@@ -8,13 +8,13 @@ class AdminController extends Controller
         require_once '../app/core/Database.php';
         $pdo = Database::connect();
 
-        // Ensure the user is logged in
+        // Check if logged in
         if (!isset($_SESSION['user_id'])) {
             header("Location: index.php?url=auth/login");
             exit;
         }
 
-        // Ensure the user is an admin
+        // Check if user is admin
         $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch();
@@ -24,17 +24,32 @@ class AdminController extends Controller
             exit;
         }
 
-        // Handle new staff creation
         $staffSuccess = "";
+
+        // Handle creation of new staff account
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_staff'])) {
             $username = trim($_POST['staff_username']);
             $password = $_POST['staff_password'];
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-            $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'staff')");
-            $staffSuccess = $stmt->execute([$username, $hashed])
-                ? "Supplier account created successfully."
-                : "Failed to create supplier account.";
+            if (empty($username) || empty($password)) {
+                $staffSuccess = "❌ Username and password are required.";
+            } else {
+                // Check if username exists
+                $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+                $stmt->execute([$username]);
+
+                if ($stmt->fetch()) {
+                    $staffSuccess = "❌ Username already exists.";
+                } else {
+                    $hashed = password_hash($password, PASSWORD_DEFAULT);
+                    $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'staff')");
+                    if ($stmt->execute([$username, $hashed])) {
+                        $staffSuccess = "✅ Supplier account created successfully.";
+                    } else {
+                        $staffSuccess = "❌ Failed to create supplier account.";
+                    }
+                }
+            }
         }
 
         // Fetch orders
@@ -45,7 +60,7 @@ class AdminController extends Controller
             ORDER BY o.created_at DESC
         ")->fetchAll();
 
-        // Fetch reviews
+        // Fetch product reviews
         $reviews = $pdo->query("
             SELECT r.*, p.name AS product_name, u.username 
             FROM product_reviews r 
@@ -54,7 +69,7 @@ class AdminController extends Controller
             ORDER BY r.created_at DESC
         ")->fetchAll();
 
-        // Send data to view
+        // Pass everything to view
         $this->view('dashboard/admin', [
             'orders' => $orders,
             'reviews' => $reviews,

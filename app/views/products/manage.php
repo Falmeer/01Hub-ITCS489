@@ -11,6 +11,7 @@ $flash = $data['flash'];
     <title>Manage Products - 01 HUB</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -81,8 +82,8 @@ $flash = $data['flash'];
         <?php endif; ?>
 
         <div class="d-flex justify-content-between mb-3">
-            <form method="GET" class="d-flex">
-                <select name="category" class="form-select me-2">
+            <div class="d-flex" style="flex: 1; gap: 10px;">
+                <select id="categoryFilter" class="form-select">
                     <option value="">All Categories</option>
                     <?php foreach ($categories as $c): ?>
                         <option value="<?= $c['id'] ?>" <?= $filter == $c['id'] ? 'selected' : '' ?>>
@@ -90,41 +91,43 @@ $flash = $data['flash'];
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <button class="btn btn-outline-secondary">Filter</button>
-            </form>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search products...">
+            </div>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal" onclick="clearForm()">
                 <i class="fas fa-plus"></i> Add Product
             </button>
         </div>
 
-        <table class="table bg-white table-bordered align-middle text-center">
-            <thead class="table-light">
-                <tr>
-                    <th>Image</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Price</th>
-                    <th>Qty</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($products as $p): ?>
+        <div id="productsTable">
+            <table class="table bg-white table-bordered align-middle text-center">
+                <thead class="table-light">
                     <tr>
-                        <td><img src="images/<?= $p['image'] ?>" alt=""></td>
-                        <td><?= htmlspecialchars($p['name']) ?></td>
-                        <td><?= htmlspecialchars($p['category']) ?></td>
-                        <td><?= $p['price'] ?> BD</td>
-                        <td><?= $p['quantity'] ?></td>
-                        <td>
-                            <button class="btn btn-sm btn-warning" onclick='editProduct(<?= json_encode($p) ?>)'><i class="fas fa-edit"></i></button>
-                            <a href="index.php?url=products/manage&delete=<?= $p['id'] ?>" onclick="return confirm('Delete product?')" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
-                        </td>
+                        <th>Image</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Qty</th>
+                        <th>Actions</th>
                     </tr>
-                <?php endforeach; ?>
-                <?php if (empty($products)) echo "<tr><td colspan='6'>No products found.</td></tr>"; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php foreach ($products as $p): ?>
+                        <tr>
+                            <td><img src="images/<?= $p['image'] ?>" alt=""></td>
+                            <td><?= htmlspecialchars($p['name']) ?></td>
+                            <td><?= htmlspecialchars($p['category']) ?></td>
+                            <td><?= $p['price'] ?> BD</td>
+                            <td><?= $p['quantity'] ?></td>
+                            <td>
+                                <button class="btn btn-sm btn-warning" onclick='editProduct(<?= json_encode($p) ?>)'><i class="fas fa-edit"></i></button>
+                                <a href="index.php?url=products/manage&delete=<?= $p['id'] ?>" onclick="return confirm('Delete product?')" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (empty($products)) echo "<tr><td colspan='6'>No products found.</td></tr>"; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -183,6 +186,26 @@ function clearForm() {
     document.getElementById('addBtn').classList.remove('d-none');
     document.getElementById('editBtn').classList.add('d-none');
 }
+
+function loadFilteredProducts() {
+    const search = $('#searchInput').val();
+    const category = $('#categoryFilter').val();
+
+    $.ajax({
+        url: 'index.php?url=products/manage',
+        method: 'GET',
+        data: { search: search, category: category },
+        success: function (response) {
+            const html = $(response).find('#productsTable').html();
+            $('#productsTable').html(html);
+        }
+    });
+}
+
+$(document).ready(function () {
+    $('#searchInput').on('keyup', loadFilteredProducts);
+    $('#categoryFilter').on('change', loadFilteredProducts);
+});
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

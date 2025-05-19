@@ -75,15 +75,21 @@ class AuthController extends Controller
                 $errors[] = "Passwords do not match.";
             } elseif (strlen($password) < 6) {
                 $errors[] = "Password must be at least 6 characters.";
+            } elseif (!preg_match('/[0-9]/', $password)) {
+                $errors[] = "Password must include at least one number.";
+            } elseif (!preg_match('/[\W_]/', $password)) {
+                $errors[] = "Password must include at least one special character.";
             } else {
                 $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
                 $stmt->execute([$username]);
+
                 if ($stmt->fetch()) {
                     $errors[] = "Username already exists.";
                 } else {
                     $hash = password_hash($password, PASSWORD_DEFAULT);
                     $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'customer')");
                     $stmt->execute([$username, $hash]);
+
                     $_SESSION['user_id'] = $pdo->lastInsertId();
                     $_SESSION['role'] = 'customer';
                     header("Location: index.php?url=customer/dashboard");
@@ -95,12 +101,13 @@ class AuthController extends Controller
         $this->view('auth/register', ['errors' => $errors]);
     }
 
+
     public function logout()
     {
         session_start();
         session_unset();
         session_destroy();
-        header("Location: index.php");
+        header("Location: index.php?url=pages/landing");
         exit;
     }
 }

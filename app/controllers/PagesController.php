@@ -9,4 +9,8 @@ class PagesController extends Controller {
         // optional homepage
         $this->view('pages/home');
     }
+    public function landing()
+    {
+        $this->view('pages/landing');
+    }
 }

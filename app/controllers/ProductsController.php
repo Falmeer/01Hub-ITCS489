@@ -8,20 +8,19 @@ class ProductsController extends Controller
         require_once '../app/core/Database.php';
         $pdo = Database::connect();
 
-        // Only staff allowed
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'staff') {
             header("Location: index.php?url=auth/login");
             exit;
         }
 
-        // Flash helper
         if (!function_exists('flash')) {
-            function flash($message, $type = 'success') {
+            function flash($message, $type = 'success')
+            {
                 $_SESSION['flash'] = ['message' => $message, 'type' => $type];
             }
         }
 
-        // Add product
+        // Add Product
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
             $name = trim($_POST['name']);
             $desc = trim($_POST['description']);
@@ -43,7 +42,7 @@ class ProductsController extends Controller
             exit;
         }
 
-        // Edit product
+        // Edit Product
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_product'])) {
             $id = $_POST['product_id'];
             $name = trim($_POST['name']);
@@ -68,7 +67,7 @@ class ProductsController extends Controller
             exit;
         }
 
-        // Delete product
+        // Delete Product
         if (isset($_GET['delete'])) {
             $stmt = $pdo->prepare("DELETE FROM products WHERE id = ?");
             $stmt->execute([$_GET['delete']]);
@@ -77,14 +76,28 @@ class ProductsController extends Controller
             exit;
         }
 
-        // Filter products
+        // Filter and Search
         $cats = $pdo->query("SELECT * FROM categories")->fetchAll();
         $filter = $_GET['category'] ?? '';
-        $query = "SELECT p.*, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id";
-        if ($filter) $query .= " WHERE p.category_id = " . intval($filter);
-        $products = $pdo->query($query)->fetchAll();
+        $search = $_GET['search'] ?? '';
 
-        // Pass everything to view
+        $query = "SELECT p.*, c.name AS category FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE 1=1";
+        $params = [];
+
+        if ($filter) {
+            $query .= " AND p.category_id = ?";
+            $params[] = $filter;
+        }
+
+        if (!empty($search)) {
+            $query .= " AND p.name LIKE ?";
+            $params[] = "%$search%";
+        }
+
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        $products = $stmt->fetchAll();
+
         $this->view('products/manage', [
             'products' => $products,
             'categories' => $cats,

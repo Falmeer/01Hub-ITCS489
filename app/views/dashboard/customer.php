@@ -195,7 +195,7 @@ $topProducts = $data['topProducts'];
     </div>
 
     <div class="main">
-        <div class="welcome">👋 Welcome back, <?= htmlspecialchars($user['username']) ?>!</div>
+        <div class="welcome">👋 Welcome to 01 Hub, <?= htmlspecialchars($user['username']) ?>!</div>
 
         <div class="dashboard-cards">
             <div class="card">
